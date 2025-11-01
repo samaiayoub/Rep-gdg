@@ -102,14 +102,15 @@ export default function MainHub() {
     return `${outer} ${inner}`;
   }, [CONFIG.mask]);
 
+  const P = process.env.PUBLIC_URL || "";
   const items = [
     { label: "Design", to: "/design", icon: null },
-    { label: "Developpent", to: "/developpent", icon: "/code-xml.png" },
-    { label: "Communication", to: "/communication", icon: "/message-square-text.png" },
-    { label: "Human Ressources", to: "/human-ressources", icon: "/users-round.png" },
-    { label: "Logistics", to: "/logistics", icon: "/calendar-1.png" },
-    { label: "Multimedia", to: "/multimedia", icon: "/camera.png" },
-    { label: "External Relations", to: "/external-relations", icon: "/dollar-sign.png" }
+    { label: "Developpent", to: "/developpent", icon: `${P}/code-xml.png` },
+    { label: "Communication", to: "/communication", icon: `${P}/message-square-text.png` },
+    { label: "Human Ressources", to: "/human-ressources", icon: `${P}/users-round.png` },
+    { label: "Logistics", to: "/logistics", icon: `${P}/calendar-1.png` },
+    { label: "Multimedia", to: "/multimedia", icon: `${P}/camera.png` },
+    { label: "External Relations", to: "/external-relations", icon: `${P}/dollar-sign.png` }
   ];
 
   return (
@@ -191,9 +192,7 @@ export default function MainHub() {
           transform: `translateX(${sidebarOpen ? 0 : -(SIDEBAR_WIDTH - SIDEBAR_PEEK)}px)`,
           transition: "transform 260ms ease",
           background: "#fff",
-          boxShadow: sidebarOpen
-            ? "0 8px 30px rgba(0,0,0,0.15)"
-            : "0 4px 16px rgba(0,0,0,0.12)",
+          boxShadow: sidebarOpen ? "0 8px 30px rgba(0,0,0,0.15)" : "0 4px 16px rgba(0,0,0,0.12)",
           borderRight: "1px solid #eee",
           zIndex: 3,
           display: "flex",
@@ -271,12 +270,7 @@ export default function MainHub() {
                   src={it.icon}
                   alt=""
                   aria-hidden
-                  style={{
-                    width: 18,
-                    height: 18,
-                    objectFit: "contain",
-                    display: "inline-block"
-                  }}
+                  style={{ width: 18, height: 18, objectFit: "contain", display: "inline-block" }}
                 />
               ) : (
                 <span
