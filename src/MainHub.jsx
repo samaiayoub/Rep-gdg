@@ -102,6 +102,16 @@ export default function MainHub() {
     return `${outer} ${inner}`;
   }, [CONFIG.mask]);
 
+  const items = [
+    { label: "Design", to: "/design", icon: null },
+    { label: "Developpent", to: "/developpent", icon: "/code-xml.png" },
+    { label: "Communication", to: "/communication", icon: "/message-square-text.png" },
+    { label: "Human Ressources", to: "/human-ressources", icon: "/users-round.png" },
+    { label: "Logistics", to: "/logistics", icon: "/calendar-1.png" },
+    { label: "Multimedia", to: "/multimedia", icon: "/camera.png" },
+    { label: "External Relations", to: "/external-relations", icon: "/dollar-sign.png" }
+  ];
+
   return (
     <div
       style={{
@@ -236,15 +246,7 @@ export default function MainHub() {
           aria-label="Departments"
           style={{ marginTop: 8, padding: "0 12px", overflowY: "auto", flex: 1 }}
         >
-          {[
-            { label: "Design", to: "/design" },
-            { label: "Developpent", to: "/developpent" },
-            { label: "Communication", to: "/communication" },
-            { label: "Human Ressources", to: "/human-ressources" },
-            { label: "Logistics", to: "/logistics" },
-            { label: "Multimedia", to: "/multimedia" },
-            { label: "External Relations", to: "/external-relations" }
-          ].map((it) => (
+          {items.map((it) => (
             <NavLink
               key={it.to}
               to={it.to}
@@ -264,16 +266,30 @@ export default function MainHub() {
                 cursor: "pointer"
               })}
             >
-              <span
-                aria-hidden
-                style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: 999,
-                  border: "2px solid #111",
-                  display: "inline-block"
-                }}
-              />
+              {it.icon ? (
+                <img
+                  src={it.icon}
+                  alt=""
+                  aria-hidden
+                  style={{
+                    width: 18,
+                    height: 18,
+                    objectFit: "contain",
+                    display: "inline-block"
+                  }}
+                />
+              ) : (
+                <span
+                  aria-hidden
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 999,
+                    border: "2px solid #111",
+                    display: "inline-block"
+                  }}
+                />
+              )}
               <span>{it.label}</span>
               <svg width="16" height="16" viewBox="0 0 24 24" style={{ marginLeft: "auto", opacity: 0.7 }}>
                 <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
