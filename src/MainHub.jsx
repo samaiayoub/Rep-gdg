@@ -344,9 +344,9 @@ export default function MainHub() {
               }}
             />
             <div style={{ lineHeight: 1.2 }}>
-              <div style={{ fontWeight: 600 }}>naima</div>
+              <div style={{ fontWeight: 600 }}>TESTT</div>
               <div style={{ fontSize: 12, color: "#6b7280" }}>
-                Google • cheraitianaima1@gmail.com
+                Google • testonly@gmail.com
               </div>
             </div>
           </div>
