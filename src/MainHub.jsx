@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
+import Sidebar from "./components/Sidebar";
 
 export default function MainHub() {
   const SIDEBAR_WIDTH = 280;
@@ -85,246 +86,98 @@ export default function MainHub() {
   );
   const removeRecent = (id) => setRecently((r) => r.filter((x) => x.id !== id));
 
+  const location = useLocation();
+  const showHub = location.pathname === "/";
+
   return (
     <div style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden", background: CONFIG.bg }}>
       <BackgroundStrings />
 
       <div style={{ position: "absolute", inset: 0, display: "flex", zIndex: 1 }}>
-        <aside
-          aria-label="Sidebar"
-          style={{
-            width: SIDEBAR_WIDTH,
-            flex: "0 0 auto",
-            height: "100%",
-            background: "#fff",
-            borderRight: "1px solid #eee",
-            boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <div style={{ padding: "20px 16px 8px 16px" }}>
-            <NavLink to="/" style={{ display: "inline-block", lineHeight: 0 }} aria-label="Go to main hub">
-              <img src="/GDG Algiers Logo.svg" alt="GDG Algiers" style={{ width: 170, height: "auto", cursor: "pointer" }} />
-            </NavLink>
-          </div>
-
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginLeft: 16 }}>Departments</div>
-
-          <nav aria-label="Departments" style={{ marginTop: 8, padding: "0 12px", overflowY: "auto", flex: 1 }}>
-            {items.map((it) => {
-              const isFav = it.special === "favorites";
-              const isActive = isFav && filter === "favorites";
-              const inner = (
-                <>
-                  <img
-                    src={it.icon}
-                    alt=""
-                    aria-hidden
-                    style={{ width: 18, height: 18, objectFit: "contain", display: "block" }}
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                      const fallback = e.currentTarget.parentElement.querySelector("span[data-fallback]");
-                      if (fallback) fallback.style.display = "inline-block";
-                    }}
-                  />
-                  <span data-fallback style={{ display: "none", width: 18, height: 18, borderRadius: 999, border: "2px solid #111" }} />
-                  <span>{it.label}</span>
-                  {isFav && (
-                    <span
-                      style={{
-                        marginLeft: "auto",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        padding: "2px 8px",
-                        borderRadius: 999,
-                        background: "rgba(66,133,244,.10)",
-                        border: "1px solid rgba(66,133,244,.18)",
-                      }}
-                      aria-label={`${favCount} favorite folders`}
-                    >
-                      {favCount}
-                    </span>
-                  )}
-                </>
-              );
-              return isFav ? (
-                <button
-                  key={it.to}
-                  onClick={() => setFilter("favorites")}
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "10px 10px",
-                    marginBottom: 6,
-                    borderRadius: 10,
-                    border: isActive ? "1px solid rgba(66,133,244,.18)" : "1px solid #eee",
-                    background: isActive ? "rgba(66,133,244,.08)" : "#fff",
-                    fontWeight: 700,
-                    color: "#111",
-                    cursor: "pointer",
-                    outline: "none",
-                  }}
-                  onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(66,133,244,.35)")}
-                  onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
-                  aria-pressed={isActive}
-                >
-                  {inner}
-                </button>
-              ) : (
-                <NavLink
-                  key={it.to}
-                  to={it.to}
-                  style={({ isActive }) => ({
-                    textDecoration: "none",
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "10px 10px",
-                    marginBottom: 6,
-                    borderRadius: 10,
-                    border: isActive ? "1px solid rgba(66,133,244,.18)" : "1px solid #eee",
-                    background: isActive ? "rgba(66,133,244,.08)" : "#fff",
-                    color: "#111",
-                    fontWeight: 500,
-                  })}
-                >
-                  {inner}
-                </NavLink>
-              );
-            })}
-          </nav>
-
-          <div style={{ borderTop: "1px solid #eee", padding: 12, display: "grid", gap: 10 }}>
-            <button
-              style={{
-                textAlign: "left",
-                padding: "8px 10px",
-                borderRadius: 8,
-                border: "1px solid #eee",
-                background: "#fff",
-                cursor: "pointer",
-                fontWeight: 500,
-                outline: "none",
-              }}
-              onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(66,133,244,.35)")}
-              onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
-            >
-              ⚙️ Account & billing
-            </button>
-            <button
-              style={{
-                textAlign: "left",
-                padding: "8px 10px",
-                borderRadius: 8,
-                border: "1px solid #eee",
-                background: "#fff",
-                color: "#e11d48",
-                cursor: "pointer",
-                fontWeight: 600,
-                outline: "none",
-              }}
-              onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(66,133,244,.35)")}
-              onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
-            >
-              ⎋ Log out
-            </button>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-              <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#e5e7eb" }} />
-              <div style={{ lineHeight: 1.2, minWidth: 0 }}>
-                <div style={{ fontWeight: 600 }}>naima</div>
-                <div style={{ fontSize: 12, color: "#6b7280", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>
-                  Google • cheraitianaima1@gmail.com
-                </div>
-              </div>
-            </div>
-          </div>
-        </aside>
+        <Sidebar items={items} favCount={favCount} filter={filter} setFilter={setFilter} />
 
         <main style={{ position: "relative", flex: 1, overflow: "auto" }}>
-          <div style={{ position: "relative", maxWidth: 1200, margin: "0 auto", padding: "24px 20px 18px", textAlign: "center" }}>
-            <img
-              src="/gdglogo.svg"
-              alt=""
-              aria-hidden="true"
-              style={{ position: "absolute", left: "50%", top: "54%", transform: "translate(-50%, -50%)", height: 200, width: "auto", opacity: 0.09, zIndex: 0, pointerEvents: "none", filter: "saturate(1.05)" }}
-            />
-
-            <h1 style={{ position: "relative", zIndex: 1, margin: "6px 0 6px", fontSize: 34, fontWeight: 900, color: "#0f172a", letterSpacing: "-0.2px" }}>
-              GDG Resources Hub
-            </h1>
-
-            <div style={{ position: "relative", zIndex: 1, fontSize: 20, fontWeight: 700, marginBottom: 12, wordSpacing: "0.04em" }}>
-              <span style={{ color: CONFIG.colors.blue, letterSpacing: "0.02em" }}>Turn </span>
-              <span style={{ color: CONFIG.colors.red, letterSpacing: "0.02em" }}>Curiosity </span>
-              <span style={{ color: CONFIG.colors.yellow, letterSpacing: "0.02em" }}>Into Code</span>
-              <span style={{ color: "#0f172a" }}>, </span>
-              <span style={{ color: CONFIG.colors.green, letterSpacing: "0.02em" }}>Ideas </span>
-              <span style={{ color: CONFIG.colors.blue, letterSpacing: "0.02em" }}>Into Impact</span>
-            </div>
-
-            <div style={{ position: "relative", zIndex: 1, fontSize: 13, color: "#475569", marginBottom: 18 }}>Centralize. Share. Empower.</div>
-
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button
-                onClick={openCreate}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "10px 14px",
-                  borderRadius: 999,
-                  border: "1px solid #e5e7eb",
-                  background: "#3b82f6",
-                  color: "#fff",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  boxShadow: "0 6px 18px rgba(59,130,246,0.25)",
-                  outline: "none",
-                }}
-                onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(66,133,244,.35), 0 6px 18px rgba(59,130,246,0.25)")}
-                onBlur={(e) => (e.currentTarget.style.boxShadow = "0 6px 18px rgba(59,130,246,0.25)")}
-                aria-label="Add folder"
-              >
-                Add folder
-                <img src="/plus.png" alt="" aria-hidden style={{ width: 16, height: 16 }} />
-              </button>
-            </div>
-          </div>
-
-          <section style={{ maxWidth: 1200, margin: "0 auto", padding: "12px 20px 8px" }}>
-            <h2 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 14px", color: "#0f172a", textAlign: "left" }}>
-              {filter === "favorites" ? "Your Favorites" : "Your Library"}
-            </h2>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 24 }}>
-              {visibleFolders.map((f) => (
-                <FolderTile
-                  key={f.id}
-                  name={f.name}
-                  projects={f.projects}
-                  hue={f.hue}
-                  favorite={f.favorite}
-                  onFav={() => toggleFav(f.id)}
-                  onAdd={() => handleAddProject(f.id)}
-                  onEdit={() => openEdit(f)}
+          <Outlet />
+          {showHub && (
+            <>
+              <div style={{ position: "relative", maxWidth: 1200, margin: "0 auto", padding: "24px 20px 18px", textAlign: "center" }}>
+                <img
+                  src="/gdglogo.svg"
+                  alt=""
+                  aria-hidden="true"
+                  style={{ position: "absolute", left: "50%", top: "54%", transform: "translate(-50%, -50%)", height: 200, width: "auto", opacity: 0.09, zIndex: 0, pointerEvents: "none", filter: "saturate(1.05)" }}
                 />
-              ))}
-            </div>
-          </section>
+                <h1 style={{ position: "relative", zIndex: 1, margin: "6px 0 6px", fontSize: 34, fontWeight: 900, color: "#0f172a", letterSpacing: "-0.2px" }}>
+                  GDG Resources Hub
+                </h1>
+                <div style={{ position: "relative", zIndex: 1, fontSize: 20, fontWeight: 700, marginBottom: 12, wordSpacing: "0.04em" }}>
+                  <span style={{ color: CONFIG.colors.blue, letterSpacing: "0.02em" }}>Turn </span>
+                  <span style={{ color: CONFIG.colors.red, letterSpacing: "0.02em" }}>Curiosity </span>
+                  <span style={{ color: CONFIG.colors.yellow, letterSpacing: "0.02em" }}>Into Code</span>
+                  <span style={{ color: "#0f172a" }}>, </span>
+                  <span style={{ color: CONFIG.colors.green, letterSpacing: "0.02em" }}>Ideas </span>
+                  <span style={{ color: CONFIG.colors.blue, letterSpacing: "0.02em" }}>Into Impact</span>
+                </div>
+                <div style={{ position: "relative", zIndex: 1, fontSize: 13, color: "#475569", marginBottom: 18 }}>Centralize. Share. Empower.</div>
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <button
+                    onClick={openCreate}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "10px 14px",
+                      borderRadius: 999,
+                      border: "1px solid #e5e7eb",
+                      background: "#3b82f6",
+                      color: "#fff",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      boxShadow: "0 6px 18px rgba(59,130,246,0.25)",
+                      outline: "none",
+                    }}
+                    onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(66,133,244,.35), 0 6px 18px rgba(59,130,246,0.25)")}
+                    onBlur={(e) => (e.currentTarget.style.boxShadow = "0 6px 18px rgba(59,130,246,0.25)")}
+                    aria-label="Add folder"
+                  >
+                    Add folder
+                    <img src="/plus.png" alt="" aria-hidden style={{ width: 16, height: 16 }} />
+                  </button>
+                </div>
+              </div>
 
-          <section style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 20px 60px" }}>
-            <h3 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 14px", color: "#0f172a" }}>Recently Viewed</h3>
+              <section style={{ maxWidth: 1200, margin: "0 auto", padding: "12px 20px 8px" }}>
+                <h2 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 14px", color: "#0f172a", textAlign: "left" }}>
+                  {filter === "favorites" ? "Your Favorites" : "Your Library"}
+                </h2>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 24 }}>
-              {recently.map((r) => (
-                <RecentCard key={r.id} id={r.id} title={r.title} text={r.text} onRemove={removeRecent} />
-              ))}
-            </div>
-          </section>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 24 }}>
+                  {visibleFolders.map((f) => (
+                    <FolderTile
+                      key={f.id}
+                      name={f.name}
+                      projects={f.projects}
+                      hue={f.hue}
+                      favorite={f.favorite}
+                      onFav={() => toggleFav(f.id)}
+                      onAdd={() => handleAddProject(f.id)}
+                      onEdit={() => openEdit(f)}
+                    />
+                  ))}
+                </div>
+              </section>
+
+              <section style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 20px 60px" }}>
+                <h3 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 14px", color: "#0f172a" }}>Recently Viewed</h3>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 24 }}>
+                  {recently.map((r) => (
+                    <RecentCard key={r.id} id={r.id} title={r.title} text={r.text} onRemove={removeRecent} />
+                  ))}
+                </div>
+              </section>
+            </>
+          )}
         </main>
       </div>
 
