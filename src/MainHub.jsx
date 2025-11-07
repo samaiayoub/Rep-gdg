@@ -1,359 +1,667 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 export default function MainHub() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const SIDEBAR_WIDTH = 280;
-  const SIDEBAR_PEEK = 16;
 
   const CONFIG = useMemo(
     () => ({
-      count: 12,
-      strokeWidth: 8,
-      borderWidth: 3,
-      speed: 0.18,
-      wiggle: 8,
-      rightBandTop: 45,
-      rightBandBottom: 95,
-      bottomBandLeft: 5,
-      bottomBandRight: 50,
-      overshoot: 0.8,
-      colors: ["#22c55e", "#ef4444", "#eab308", "#3b82f6"],
-      coreOpacity: 0.65,
-      background: "#ffffff",
-      mask: { cx: 50, cy: 50, w: 42, h: 18, r: 6 }
+      bg: "#ffffff",
+      colors: { red: "#ea4335", blue: "#4285f4", green: "#34a853", yellow: "#fbbc04", ink: "#0f172a" },
     }),
     []
   );
 
-  const [tick, setTick] = useState(0);
-  const raf = useRef(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [showEdit, setShowEdit] = useState(null);
+  const [draftName, setDraftName] = useState("");
+  const [draftHue, setDraftHue] = useState(0);
 
-  useEffect(() => {
-    const loop = () => {
-      setTick((t) => t + 1);
-      raf.current = requestAnimationFrame(loop);
-    };
-    raf.current = requestAnimationFrame(loop);
-    return () => raf.current && cancelAnimationFrame(raf.current);
-  }, []);
+  const hueOptions = [
+    { label: "blue", deg: 0 },
+    { label: "yellow", deg: -40 },
+    { label: "red", deg: 140 },
+    { label: "green", deg: -90 },
+  ];
 
-  const n2 = (t, seed) =>
-    Math.sin(t * 0.006 + seed * 1.3) * 0.6 +
-    Math.sin(t * 0.004 + seed * 2.1) * 0.3 +
-    Math.sin(t * 0.003 + seed * 3.7) * 0.1;
-
-  const strands = useMemo(() => {
-    return Array.from({ length: CONFIG.count }, (_, i) => {
-      const seed = (i + 1) * 19.17;
-      const t = i / Math.max(1, CONFIG.count - 1);
-      const yRightBase =
-        CONFIG.rightBandTop + t * (CONFIG.rightBandBottom - CONFIG.rightBandTop);
-      const xBottomBase =
-        CONFIG.bottomBandRight - t * (CONFIG.bottomBandRight - CONFIG.bottomBandLeft);
-      const color = CONFIG.colors[i % CONFIG.colors.length];
-      return { i, seed, yRightBase, xBottomBase, color };
-    });
-  }, [
-    CONFIG.count,
-    CONFIG.rightBandTop,
-    CONFIG.rightBandBottom,
-    CONFIG.bottomBandLeft,
-    CONFIG.bottomBandRight,
-    CONFIG.colors
+  const [folders, setFolders] = useState([
+    { id: crypto.randomUUID(), name: "design guides", hue: 0, projects: 20, favorite: true },
+    { id: crypto.randomUUID(), name: "Poster Template", hue: -40, projects: 10, favorite: false },
+    { id: crypto.randomUUID(), name: "comm guides", hue: 140, projects: 10, favorite: false },
+    { id: crypto.randomUUID(), name: "naima", hue: -90, projects: 10, favorite: true },
   ]);
 
-  const pathFor = (s) => {
-    const t = tick * CONFIG.speed;
-    const bottomY = 100 + CONFIG.overshoot;
-    const yA = clamp(
-      s.yRightBase + n2(t, s.seed) * CONFIG.wiggle,
-      CONFIG.rightBandTop,
-      CONFIG.rightBandBottom
-    );
-    const xTarget = 0 + CONFIG.overshoot;
-    const c1x = 80 + n2(t, s.seed + 21) * 10;
-    const c2x = xTarget + n2(t, s.seed + 7) * 12;
-    const down = Math.abs(n2(t, s.seed));
-    let c1y = yA + 8 + down * 18;
-    let c2y = bottomY - (10 + down * 16);
-    if (c2y <= c1y + 4) c2y = c1y + 4;
-    return `M ${100 + CONFIG.overshoot} ${yA} C ${c1x} ${c1y} ${c2x} ${c2y} ${xTarget} ${bottomY}`;
+  const favCount = folders.filter((f) => f.favorite).length;
+  const [filter, setFilter] = useState("all");
+
+  const items = [
+    { label: "Favorites", to: "/favorites", icon: "/heart.png", special: "favorites" },
+    { label: "Design", to: "/design", icon: "/design.png" },
+    { label: "Development", to: "/development", icon: "/code-xml.png" },
+    { label: "Communication", to: "/communication", icon: "/message-square-text.png" },
+    { label: "Human Resources", to: "/human-resources", icon: "/users-round.png" },
+    { label: "Logistics", to: "/logistics", icon: "/calendar-1.png" },
+    { label: "Multimedia", to: "/multimedia", icon: "/camera.png" },
+    { label: "External Relations", to: "/external-relations", icon: "/dollar-sign.png" },
+  ];
+
+  const openCreate = () => {
+    setDraftName("");
+    setDraftHue(0);
+    setShowCreate(true);
+  };
+  const saveCreate = () => {
+    if (!draftName.trim()) return;
+    setFolders((f) => [{ id: crypto.randomUUID(), name: draftName.trim(), hue: draftHue, projects: 0, favorite: false }, ...f]);
+    setShowCreate(false);
+  };
+  const openEdit = (folder) => {
+    setDraftName(folder.name);
+    setDraftHue(folder.hue);
+    setShowEdit(folder.id);
+  };
+  const saveEdit = () => {
+    setFolders((f) => f.map((x) => (x.id === showEdit ? { ...x, name: draftName.trim() || x.name, hue: draftHue } : x)));
+    setShowEdit(null);
+  };
+  const toggleFav = (id) => {
+    setFolders((f) => f.map((x) => (x.id === id ? { ...x, favorite: !x.favorite } : x)));
   };
 
-  const holePath = useMemo(() => {
-    const { cx, cy, w, h, r: rRaw } = CONFIG.mask;
-    const r = Math.min(rRaw, w / 2, h / 2);
-    const x = cx - w / 2;
-    const y = cy - h / 2;
-    const outer = `M0 0 H100 V100 H0 Z`;
-    const inner = [
-      `M ${x + r} ${y}`,
-      `H ${x + w - r}`,
-      `A ${r} ${r} 0 0 1 ${x + w} ${y + r}`,
-      `V ${y + h - r}`,
-      `A ${r} ${r} 0 0 1 ${x + w - r} ${y + h}`,
-      `H ${x + r}`,
-      `A ${r} ${r} 0 0 1 ${x} ${y + h - r}`,
-      `V ${y + r}`,
-      `A ${r} ${r} 0 0 1 ${x + r} ${y}`,
-      `Z`
-    ].join(" ");
-    return `${outer} ${inner}`;
-  }, [CONFIG.mask]);
+  const isMember = true;
+  function handleAddProject(folderId) {
+    if (!isMember) {
+      window.dispatchEvent(new CustomEvent("GDG:authRequired", { detail: { source: "createProject" } }));
+      return;
+    }
+    window.dispatchEvent(new CustomEvent("GDG:createProject", { detail: { folderId, origin: "MainHub", ts: Date.now() } }));
+    setFolders((f) => f.map((x) => (x.id === folderId ? { ...x, projects: x.projects + 1 } : x)));
+  }
 
-  const P = process.env.PUBLIC_URL || "";
-  const items = [
-    { label: "Design", to: "/design", icon: null },
-    { label: "Developpent", to: "/developpent", icon: `${P}/code-xml.png` },
-    { label: "Communication", to: "/communication", icon: `${P}/message-square-text.png` },
-    { label: "Human Ressources", to: "/human-ressources", icon: `${P}/users-round.png` },
-    { label: "Logistics", to: "/logistics", icon: `${P}/calendar-1.png` },
-    { label: "Multimedia", to: "/multimedia", icon: `${P}/camera.png` },
-    { label: "External Relations", to: "/external-relations", icon: `${P}/dollar-sign.png` }
-  ];
+  const visibleFolders = folders.filter((f) => (filter === "favorites" ? f.favorite : true));
+
+  const [recently, setRecently] = useState(
+    Array.from({ length: 6 }, (_, i) => ({
+      id: i + 1,
+      title: "Event feedback",
+      text: "Used by the GDG team to collect feedback after events…",
+    }))
+  );
+  const removeRecent = (id) => setRecently((r) => r.filter((x) => x.id !== id));
+
+  return (
+    <div style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden", background: CONFIG.bg }}>
+      <BackgroundStrings />
+
+      <div style={{ position: "absolute", inset: 0, display: "flex", zIndex: 1 }}>
+        <aside
+          aria-label="Sidebar"
+          style={{
+            width: SIDEBAR_WIDTH,
+            flex: "0 0 auto",
+            height: "100%",
+            background: "#fff",
+            borderRight: "1px solid #eee",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <div style={{ padding: "20px 16px 8px 16px" }}>
+            <NavLink to="/" style={{ display: "inline-block", lineHeight: 0 }} aria-label="Go to main hub">
+              <img src="/GDG Algiers Logo.svg" alt="GDG Algiers" style={{ width: 170, height: "auto", cursor: "pointer" }} />
+            </NavLink>
+          </div>
+
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginLeft: 16 }}>Departments</div>
+
+          <nav aria-label="Departments" style={{ marginTop: 8, padding: "0 12px", overflowY: "auto", flex: 1 }}>
+            {items.map((it) => {
+              const isFav = it.special === "favorites";
+              const isActive = isFav && filter === "favorites";
+              return (
+                <button
+                  key={it.to}
+                  onClick={() => (isFav ? setFilter("favorites") : setFilter("all"))}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "10px 10px",
+                    marginBottom: 6,
+                    borderRadius: 10,
+                    border: isActive ? "1px solid rgba(66,133,244,.18)" : "1px solid #eee",
+                    background: isActive ? "rgba(66,133,244,.08)" : "#fff",
+                    fontWeight: isFav ? 700 : 500,
+                    color: "#111",
+                    cursor: "pointer",
+                    outline: "none",
+                  }}
+                  onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(66,133,244,.35)")}
+                  onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
+                  aria-pressed={isActive}
+                >
+                  {it.icon ? (
+                    <img src={it.icon} alt="" aria-hidden style={{ width: 18, height: 18, objectFit: "contain" }} />
+                  ) : (
+                    <span aria-hidden style={{ width: 18, height: 18, borderRadius: 999, border: "2px solid #111", display: "inline-block" }} />
+                  )}
+                  <span>{it.label}</span>
+                  {isFav && (
+                    <span
+                      style={{
+                        marginLeft: "auto",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        padding: "2px 8px",
+                        borderRadius: 999,
+                        background: "rgba(66,133,244,.10)",
+                        border: "1px solid rgba(66,133,244,.18)",
+                      }}
+                      aria-label={`${favCount} favorite folders`}
+                    >
+                      {favCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+
+          <div style={{ borderTop: "1px solid #eee", padding: 12, display: "grid", gap: 10 }}>
+            <button
+              style={{
+                textAlign: "left",
+                padding: "8px 10px",
+                borderRadius: 8,
+                border: "1px solid #eee",
+                background: "#fff",
+                cursor: "pointer",
+                fontWeight: 500,
+                outline: "none",
+              }}
+              onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(66,133,244,.35)")}
+              onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
+            >
+              ⚙️ Account & billing
+            </button>
+            <button
+              style={{
+                textAlign: "left",
+                padding: "8px 10px",
+                borderRadius: 8,
+                border: "1px solid #eee",
+                background: "#fff",
+                color: "#e11d48",
+                cursor: "pointer",
+                fontWeight: 600,
+                outline: "none",
+              }}
+              onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(66,133,244,.35)")}
+              onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
+            >
+              ⎋ Log out
+            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+              <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#e5e7eb" }} />
+              <div style={{ lineHeight: 1.2, minWidth: 0 }}>
+                <div style={{ fontWeight: 600 }}>naima</div>
+                <div style={{ fontSize: 12, color: "#6b7280", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>
+                  Google • cheraitianaima1@gmail.com
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <main style={{ position: "relative", flex: 1, overflow: "auto" }}>
+          <div style={{ position: "relative", maxWidth: 1200, margin: "0 auto", padding: "24px 20px 18px", textAlign: "center" }}>
+            <img
+              src="/gdglogo.svg"
+              alt=""
+              aria-hidden="true"
+              style={{ position: "absolute", left: "50%", top: "54%", transform: "translate(-50%, -50%)", height: 200, width: "auto", opacity: 0.09, zIndex: 0, pointerEvents: "none", filter: "saturate(1.05)" }}
+            />
+
+            <h1 style={{ position: "relative", zIndex: 1, margin: "6px 0 6px", fontSize: 34, fontWeight: 900, color: "#0f172a", letterSpacing: "-0.2px" }}>
+              GDG Resources Hub
+            </h1>
+
+            <div style={{ position: "relative", zIndex: 1, fontSize: 20, fontWeight: 700, marginBottom: 12, wordSpacing: "0.04em" }}>
+              <span style={{ color: CONFIG.colors.blue, letterSpacing: "0.02em" }}>Turn </span>
+              <span style={{ color: CONFIG.colors.red, letterSpacing: "0.02em" }}>Curiosity </span>
+              <span style={{ color: CONFIG.colors.yellow, letterSpacing: "0.02em" }}>Into Code</span>
+              <span style={{ color: "#0f172a" }}>, </span>
+              <span style={{ color: CONFIG.colors.green, letterSpacing: "0.02em" }}>Ideas </span>
+              <span style={{ color: CONFIG.colors.blue, letterSpacing: "0.02em" }}>Into Impact</span>
+            </div>
+
+            <div style={{ position: "relative", zIndex: 1, fontSize: 13, color: "#475569", marginBottom: 18 }}>Centralize. Share. Empower.</div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button
+                onClick={openCreate}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "10px 14px",
+                  borderRadius: 999,
+                  border: "1px solid #e5e7eb",
+                  background: "#3b82f6",
+                  color: "#fff",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  boxShadow: "0 6px 18px rgba(59,130,246,0.25)",
+                  outline: "none",
+                }}
+                onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(66,133,244,.35), 0 6px 18px rgba(59,130,246,0.25)")}
+                onBlur={(e) => (e.currentTarget.style.boxShadow = "0 6px 18px rgba(59,130,246,0.25)")}
+                aria-label="Add folder"
+              >
+                Add folder
+                <img src="/plus.png" alt="" aria-hidden style={{ width: 16, height: 16 }} />
+              </button>
+            </div>
+          </div>
+
+          <section style={{ maxWidth: 1200, margin: "0 auto", padding: "12px 20px 8px" }}>
+            <h2 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 14px", color: "#0f172a", textAlign: "left" }}>
+              {filter === "favorites" ? "Your Favorites" : "Your Library"}
+            </h2>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 24 }}>
+              {visibleFolders.map((f) => (
+                <FolderTile
+                  key={f.id}
+                  name={f.name}
+                  projects={f.projects}
+                  hue={f.hue}
+                  favorite={f.favorite}
+                  onFav={() => toggleFav(f.id)}
+                  onAdd={() => handleAddProject(f.id)}
+                  onEdit={() => openEdit(f)}
+                />
+              ))}
+            </div>
+          </section>
+
+          <section style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 20px 60px" }}>
+            <h3 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 14px", color: "#0f172a" }}>Recently Viewed</h3>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 24 }}>
+              {recently.map((r) => (
+                <RecentCard key={r.id} id={r.id} title={r.title} text={r.text} onRemove={removeRecent} />
+              ))}
+            </div>
+          </section>
+        </main>
+      </div>
+
+      {(showCreate || showEdit) && (
+        <Modal onClose={() => (showCreate ? setShowCreate(false) : setShowEdit(null))}>
+          <CreateEditDialog
+            mode={showCreate ? "create" : "edit"}
+            draftName={draftName}
+            setDraftName={setDraftName}
+            draftHue={draftHue}
+            setDraftHue={setDraftHue}
+            hueOptions={hueOptions}
+            onCancel={() => (showCreate ? setShowCreate(false) : setShowEdit(null))}
+            onSave={() => (showCreate ? saveCreate() : saveEdit())}
+          />
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function BackgroundStrings() {
+  const svgRef = useRef(null);
+
+  useEffect(() => {
+    let raf = 0;
+    const t0 = performance.now();
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    const update = (t) => {
+      const dt = (t - t0) / 1000;
+      const W = svg.clientWidth;
+      const H = svg.clientHeight;
+
+      const margin = 72;
+      const start = { x: W + margin, y: -margin };
+      const end = { x: -margin, y: H + margin };
+
+      const baseBends = [220, 280, 340, 410];
+      const amp = 14;
+      const speed = 1.25;
+
+      [...svg.querySelectorAll("path[data-wire]")].forEach((p, i) => {
+        const bend = baseBends[i] + Math.sin(dt * speed + i * 0.9) * amp;
+        const c1 = { x: start.x - bend * 1.2, y: start.y + bend * 1.55 };
+        const c2 = { x: end.x + bend * 0.95, y: end.y - bend * 0.45 };
+        p.setAttribute("d", `M ${start.x},${start.y} C ${c1.x},${c1.y} ${c2.x},${c2.y} ${end.x},${end.y}`);
+      });
+
+      raf = requestAnimationFrame(update);
+    };
+
+    raf = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  return (
+    <svg ref={svgRef} aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 0, pointerEvents: "none" }}>
+      <defs>
+        <filter id="soften" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="0.6" />
+        </filter>
+      </defs>
+      <g filter="url(#soften)">
+        <path data-wire stroke="#4285f4" strokeWidth="10" strokeLinecap="round" fill="none" opacity=".42" />
+        <path data-wire stroke="#ea4335" strokeWidth="10" strokeLinecap="round" fill="none" opacity=".38" />
+        <path data-wire stroke="#34a853" strokeWidth="10" strokeLinecap="round" fill="none" opacity=".34" />
+        <path data-wire stroke="#fbbc04" strokeWidth="10" strokeLinecap="round" fill="none" opacity=".30" />
+      </g>
+    </svg>
+  );
+}
+
+function FolderTile({ name, projects, hue, favorite, onFav, onAdd, onEdit }) {
+  const [hover, setHover] = useState(false);
 
   return (
     <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       style={{
         position: "relative",
-        width: "100vw",
-        height: "100vh",
-        overflow: "hidden",
-        background: CONFIG.background
+        height: 170,
+        background: "transparent",
+        borderRadius: 16,
+        transition: "transform 160ms ease, filter 160ms ease",
+        transform: hover ? "translateY(-2px) scale(1.01)" : "none",
+        filter: hover ? "drop-shadow(0 20px 30px rgba(0,0,0,0.16))" : "drop-shadow(0 14px 22px rgba(0,0,0,0.12))",
+        cursor: "default",
       }}
+      title={name}
     >
-      <svg
-        width="100%"
-        height="100%"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        style={{ position: "absolute", inset: 0, zIndex: 0 }}
-      >
-        <defs>
-          <mask id="hole" maskUnits="userSpaceOnUse">
-            <path d={holePath} fill="#fff" fillRule="evenodd" />
-          </mask>
-          <clipPath id="frame">
-            <rect x="0" y="0" width="100" height="100" />
-          </clipPath>
-        </defs>
-        <g mask="url(#hole)" clipPath="url(#frame)">
-          {strands
-            .filter((s) => s.i >= 3)
-            .map((s) => (
-              <g key={s.i}>
-                <path
-                  d={pathFor(s)}
-                  fill="none"
-                  stroke={s.color}
-                  strokeWidth={CONFIG.strokeWidth + CONFIG.borderWidth}
-                  strokeLinecap="butt"
-                  strokeLinejoin="round"
-                  vectorEffect="non-scaling-stroke"
-                />
-                <path
-                  d={pathFor(s)}
-                  fill="none"
-                  stroke={s.color}
-                  strokeWidth={CONFIG.strokeWidth}
-                  strokeLinecap="butt"
-                  strokeLinejoin="round"
-                  vectorEffect="non-scaling-stroke"
-                  opacity={CONFIG.coreOpacity}
-                />
-              </g>
-            ))}
-        </g>
-      </svg>
+      <img
+        src="/fullfolder.svg"
+        alt=""
+        aria-hidden="true"
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", filter: `hue-rotate(${hue}deg) saturate(1.12)`, pointerEvents: "none", zIndex: 0 }}
+      />
 
       <div
         style={{
           position: "absolute",
-          inset: 0,
-          pointerEvents: "none",
+          top: 10,
+          right: 12,
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 2
+          gap: 8,
+          opacity: hover ? 1 : 0,
+          transform: hover ? "translateY(0)" : "translateY(-4px)",
+          transition: "opacity 160ms ease, transform 160ms ease",
+          zIndex: 2,
         }}
       >
-        <img src="/gdglogo.svg" alt="GDG Logo" style={{ height: 200, width: "auto" }} />
+        <IconBtn title="Edit folder" onClick={onEdit} icon="/pencil.png" />
+        <IconBtn title="Add project" onClick={onAdd} icon="/plus.png" />
+        <IconBtn title={favorite ? "Remove from favorites" : "Add to favorites"} onClick={onFav} icon="/heart.png" active={favorite} />
       </div>
 
-      <aside
-        aria-label="Sidebar"
+      <div
         style={{
           position: "absolute",
-          top: 0,
-          left: 0,
-          height: "100%",
-          width: SIDEBAR_WIDTH,
-          transform: `translateX(${sidebarOpen ? 0 : -(SIDEBAR_WIDTH - SIDEBAR_PEEK)}px)`,
-          transition: "transform 260ms ease",
-          background: "#fff",
-          boxShadow: sidebarOpen ? "0 8px 30px rgba(0,0,0,0.15)" : "0 4px 16px rgba(0,0,0,0.12)",
-          borderRight: "1px solid #eee",
-          zIndex: 3,
+          left: 10,
+          right: 10,
+          bottom: 10,
+          height: 56,
+          borderRadius: 14,
+          background:
+            "linear-gradient(180deg, rgba(255,255,255,.26) 0%, rgba(255,255,255,.18) 100%), radial-gradient(80% 100% at 50% 0%, rgba(255,255,255,.35), rgba(255,255,255,0))",
+          backdropFilter: "blur(6px)",
+          boxShadow: hover ? "inset 0 0 0 1px rgba(255,255,255,.5), 0 6px 16px rgba(0,0,0,.18)" : "inset 0 0 0 1px rgba(255,255,255,.45), 0 4px 12px rgba(0,0,0,.12)",
           display: "flex",
-          flexDirection: "column"
+          alignItems: "center",
+          padding: "0 14px",
+          gap: 10,
+          zIndex: 1,
+          transition: "box-shadow 160ms ease, transform 160ms ease, background 160ms ease",
+          transform: hover ? "translateY(-2px)" : "translateY(0)",
         }}
       >
-        <button
-          onClick={() => setSidebarOpen((v) => !v)}
-          aria-expanded={sidebarOpen}
-          aria-controls="gdg-sidebar"
-          title={sidebarOpen ? "Close" : "Open"}
-          style={{
-            position: "absolute",
-            right: -16,
-            top: 72,
-            width: 32,
-            height: 48,
-            borderRadius: "0 8px 8px 0",
-            border: "1px solid #eee",
-            background: "#ffffff",
-            boxShadow: "2px 2px 10px rgba(0,0,0,0.12)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer"
-          }}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24">
-            <path
-              d={sidebarOpen ? "M15 6l-6 6 6 6" : "M9 6l6 6-6 6"}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-
-        <div style={{ padding: "20px 16px 8px 16px" }}>
-          <img src="/GDG Algiers Logo.svg" alt="GDG Algiers" style={{ width: 160, height: "auto" }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: "#ffffff", fontWeight: 800, fontSize: 18, letterSpacing: 0.2, textShadow: "0 2px 10px rgba(0,0,0,.35)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
+        <div style={{ color: "rgba(255,255,255,.95)", fontSize: 13, marginTop: 2, textShadow: "0 2px 8px rgba(0,0,0,.35)" }}>{projects} {projects === 1 ? "project" : "projects"}</div>
         </div>
-
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#e11d48", marginLeft: 16 }}>
-          Departments
-        </div>
-
-        <nav
-          id="gdg-sidebar"
-          aria-label="Departments"
-          style={{ marginTop: 8, padding: "0 12px", overflowY: "auto", flex: 1 }}
-        >
-          {items.map((it) => (
-            <NavLink
-              key={it.to}
-              to={it.to}
-              style={({ isActive }) => ({
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "10px 10px",
-                marginBottom: 6,
-                borderRadius: 8,
-                border: "1px solid " + (isActive ? "#f3d9b1" : "#eee"),
-                background: isActive ? "#faebd7" : "#fff",
-                fontWeight: isActive ? 600 : 500,
-                color: "#111",
-                textDecoration: "none",
-                cursor: "pointer"
-              })}
-            >
-              {it.icon ? (
-                <img
-                  src={it.icon}
-                  alt=""
-                  aria-hidden
-                  style={{ width: 18, height: 18, objectFit: "contain", display: "inline-block" }}
-                />
-              ) : (
-                <span
-                  aria-hidden
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 999,
-                    border: "2px solid #111",
-                    display: "inline-block"
-                  }}
-                />
-              )}
-              <span>{it.label}</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" style={{ marginLeft: "auto", opacity: 0.7 }}>
-                <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </NavLink>
-          ))}
-        </nav>
-
-        <div
-          style={{
-            borderTop: "1px solid #eee",
-            padding: 12,
-            display: "grid",
-            gap: 10
-          }}
-        >
-          <button
-            style={{
-              textAlign: "left",
-              padding: "8px 10px",
-              borderRadius: 8,
-              border: "1px solid #eee",
-              background: "#fff",
-              cursor: "pointer",
-              fontWeight: 500
-            }}
-          >
-            ⚙️ Account & billing
-          </button>
-          <button
-            style={{
-              textAlign: "left",
-              padding: "8px 10px",
-              borderRadius: 8,
-              border: "1px solid #eee",
-              background: "#fff",
-              color: "#e11d48",
-              cursor: "pointer",
-              fontWeight: 600
-            }}
-          >
-            ⎋ Log out
-          </button>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                background: "#e5e7eb"
-              }}
-            />
-            <div style={{ lineHeight: 1.2 }}>
-              <div style={{ fontWeight: 600 }}>TESTT</div>
-              <div style={{ fontSize: 12, color: "#6b7280" }}>
-                Google • testonly@gmail.com
-              </div>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      <div style={{ position: "absolute", inset: 0, zIndex: 1, overflow: "auto" }}>
-        <Outlet />
+        <img src="/pencil.png" alt="" aria-hidden style={{ width: 18, height: 18, opacity: 0.95, filter: "drop-shadow(0 1px 4px rgba(0,0,0,.3))" }} />
       </div>
     </div>
   );
 }
 
-function clamp(v, lo, hi) {
-  return Math.max(lo, Math.min(hi, v));
+function IconBtn({ title, onClick, icon, active }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button
+      aria-label={title}
+      title={title}
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      onFocus={() => setHov(true)}
+      onBlur={() => setHov(false)}
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 12,
+        border: hov ? "1px solid rgba(255,255,255,.35)" : "1px solid rgba(255,255,255,.22)",
+        background: hov ? "rgba(0,0,0,.14)" : "rgba(0,0,0,.10)",
+        backdropFilter: "blur(4px)",
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center",
+        outline: "none",
+        filter: active ? "drop-shadow(0 2px 8px rgba(234,67,53,0.45))" : "drop-shadow(0 2px 6px rgba(0,0,0,0.25))",
+        transition: "background 140ms, border 140ms, transform 140ms",
+        transform: hov ? "translateY(-1px)" : "none",
+      }}
+      aria-pressed={!!active}
+    >
+      <img src={icon} alt="" aria-hidden style={{ width: 18, height: 18 }} />
+    </button>
+  );
+}
+
+function RecentCard({ id, title, text, onRemove }) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+  const btnRef = useRef(null);
+
+  useEffect(() => {
+    function onDocClick(e) {
+      if (!menuRef.current || !btnRef.current) return;
+      if (menuRef.current.contains(e.target) || btnRef.current.contains(e.target)) return;
+      setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  return (
+    <div
+      style={{
+        height: 150,
+        borderRadius: 16,
+        background: "#fff",
+        border: "1px solid #eee",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
+        padding: 16,
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      <img
+        src="/recentlyviewed.svg"
+        alt=""
+        aria-hidden="true"
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.95, pointerEvents: "none" }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          inset: "0 0 0 0",
+          background: "linear-gradient(180deg, rgba(255,255,255,.92) 0%, rgba(255,255,255,.70) 28%, rgba(255,255,255,.35) 60%, rgba(255,255,255,0) 100%)",
+          pointerEvents: "none",
+        }}
+      />
+      <div style={{ position: "relative", zIndex: 1, color: "#0f172a" }}>
+        <div style={{ fontSize: 16, fontWeight: 800 }}>{title}</div>
+        <div style={{ fontSize: 12, color: "#64748b", marginTop: 8, maxWidth: 280 }}>{text}</div>
+      </div>
+      <button
+        ref={btnRef}
+        aria-label={`More options for ${title}`}
+        style={{
+          position: "absolute",
+          right: 10,
+          top: 10,
+          width: 28,
+          height: 28,
+          borderRadius: 8,
+          border: "1px solid #eee",
+          display: "grid",
+          placeItems: "center",
+          background: "#fff",
+          cursor: "pointer",
+          outline: "none",
+          zIndex: 2,
+        }}
+        onClick={() => setOpen((v) => !v)}
+        onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(66,133,244,.35)")}
+        onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="5" cy="12" r="2" />
+          <circle cx="12" cy="12" r="2" />
+          <circle cx="19" cy="12" r="2" />
+        </svg>
+      </button>
+      {open && (
+        <div
+          ref={menuRef}
+          role="menu"
+          style={{
+            position: "absolute",
+            right: 10,
+            top: 44,
+            background: "#fff",
+            border: "1px solid #e5e7eb",
+            boxShadow: "0 8px 24px rgba(0,0,0,.08)",
+            borderRadius: 10,
+            padding: 6,
+            zIndex: 3,
+            minWidth: 140,
+          }}
+        >
+          <button
+            role="menuitem"
+            onClick={() => {
+              onRemove(id);
+              setOpen(false);
+            }}
+            style={{
+              width: "100%",
+              textAlign: "left",
+              padding: "8px 10px",
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+              borderRadius: 8,
+              fontSize: 14,
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(0,0,0,.04)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          >
+            Remove
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Modal({ children, onClose }) {
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.28)", display: "grid", placeItems: "center", zIndex: 50, backdropFilter: "blur(2px)" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: 560, background: "#fff", borderRadius: 20, border: "1px solid #eef2f7", boxShadow: "0 24px 72px rgba(0,0,0,0.22)", padding: 22 }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function CreateEditDialog({ mode, draftName, setDraftName, draftHue, setDraftHue, hueOptions, onCancel, onSave }) {
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") onCancel();
+      if (e.key === "Enter") onSave();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onCancel, onSave]);
+
+  return (
+    <div>
+      <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 16 }}>{mode === "create" ? "Create folder" : "Edit folder"}</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 6 }}>title</div>
+      <input
+        value={draftName}
+        onChange={(e) => setDraftName(e.target.value)}
+        placeholder="name your folder"
+        autoFocus
+        style={{ width: "100%", padding: "12px 14px", borderRadius: 12, border: "1px solid #e5e7eb", fontSize: 14, outline: "none", transition: "box-shadow 120ms, border 120ms", boxShadow: "0 0 0 0 rgba(66,133,244,0)" }}
+        onFocus={(e) => (e.target.style.boxShadow = "0 0 0 4px rgba(66,133,244,0.20)")}
+        onBlur={(e) => (e.target.style.boxShadow = "0 0 0 0 rgba(66,133,244,0)")}
+      />
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", margin: "16px 0 8px" }}>Choose a color</div>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        {hueOptions.map((o) => (
+          <button
+            key={o.label}
+            onClick={() => setDraftHue(o.deg)}
+            aria-label={o.label}
+            style={{ width: 52, height: 52, borderRadius: 14, border: draftHue === o.deg ? "3px solid #111" : "2px solid #e5e7eb", background: "#fff", cursor: "pointer", display: "grid", placeItems: "center", transition: "transform 120ms", outline: "none" }}
+            onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(66,133,244,.35)")}
+            onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
+          >
+            <img src="/fullfolder.svg" alt="" aria-hidden="true" style={{ width: 34, height: 34, filter: `hue-rotate(${o.deg}deg) saturate(1.1)` }} />
+          </button>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 20 }}>
+        <button
+          onClick={onCancel}
+          style={{ padding: "10px 14px", borderRadius: 12, border: "1px solid #e5e7eb", background: "#fff", cursor: "pointer", fontWeight: 600, outline: "none" }}
+          onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(66,133,244,.35)")}
+          onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
+        >
+          discard
+        </button>
+        <button
+          onClick={onSave}
+          style={{ padding: "10px 16px", borderRadius: 12, border: "1px solid #e5e7eb", background: "#3b82f6", color: "#fff", fontWeight: 800, cursor: "pointer", outline: "none" }}
+          onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(66,133,244,.35)")}
+          onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
+        >
+          save
+        </button>
+      </div>
+    </div>
+  );
 }
