@@ -15,20 +15,20 @@ export default function MainHub() {
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(null);
   const [draftName, setDraftName] = useState("");
-  const [draftHue, setDraftHue] = useState(0);
+  const [draftHue, setDraftHue] = useState(145);
 
   const hueOptions = [
+    { label: "red", deg: 145 },
     { label: "blue", deg: 0 },
     { label: "yellow", deg: -40 },
-    { label: "red", deg: 140 },
-    { label: "green", deg: -90 },
+    { label: "green", deg: -95 },
   ];
 
   const [folders, setFolders] = useState([
     { id: crypto.randomUUID(), name: "design guides", hue: 0, projects: 20, favorite: true },
     { id: crypto.randomUUID(), name: "Poster Template", hue: -40, projects: 10, favorite: false },
-    { id: crypto.randomUUID(), name: "comm guides", hue: 140, projects: 10, favorite: false },
-    { id: crypto.randomUUID(), name: "naima", hue: -90, projects: 10, favorite: true },
+    { id: crypto.randomUUID(), name: "comm guides", hue: -95, projects: 10, favorite: false },
+    { id: crypto.randomUUID(), name: "naima", hue: 145, projects: 10, favorite: true },
   ]);
 
   const favCount = folders.filter((f) => f.favorite).length;
@@ -47,7 +47,7 @@ export default function MainHub() {
 
   const openCreate = () => {
     setDraftName("");
-    setDraftHue(0);
+    setDraftHue(145);
     setShowCreate(true);
   };
   const saveCreate = () => {
@@ -81,11 +81,7 @@ export default function MainHub() {
   const visibleFolders = folders.filter((f) => (filter === "favorites" ? f.favorite : true));
 
   const [recently, setRecently] = useState(
-    Array.from({ length: 6 }, (_, i) => ({
-      id: i + 1,
-      title: "Event feedback",
-      text: "Used by the GDG team to collect feedback after events…",
-    }))
+    Array.from({ length: 6 }, (_, i) => ({ id: i + 1, title: "Event feedback", text: "Used by the GDG team to collect feedback after events…" }))
   );
   const removeRecent = (id) => setRecently((r) => r.filter((x) => x.id !== id));
 
@@ -119,34 +115,20 @@ export default function MainHub() {
             {items.map((it) => {
               const isFav = it.special === "favorites";
               const isActive = isFav && filter === "favorites";
-              return (
-                <button
-                  key={it.to}
-                  onClick={() => (isFav ? setFilter("favorites") : setFilter("all"))}
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "10px 10px",
-                    marginBottom: 6,
-                    borderRadius: 10,
-                    border: isActive ? "1px solid rgba(66,133,244,.18)" : "1px solid #eee",
-                    background: isActive ? "rgba(66,133,244,.08)" : "#fff",
-                    fontWeight: isFav ? 700 : 500,
-                    color: "#111",
-                    cursor: "pointer",
-                    outline: "none",
-                  }}
-                  onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(66,133,244,.35)")}
-                  onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
-                  aria-pressed={isActive}
-                >
-                  {it.icon ? (
-                    <img src={it.icon} alt="" aria-hidden style={{ width: 18, height: 18, objectFit: "contain" }} />
-                  ) : (
-                    <span aria-hidden style={{ width: 18, height: 18, borderRadius: 999, border: "2px solid #111", display: "inline-block" }} />
-                  )}
+              const inner = (
+                <>
+                  <img
+                    src={it.icon}
+                    alt=""
+                    aria-hidden
+                    style={{ width: 18, height: 18, objectFit: "contain", display: "block" }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                      const fallback = e.currentTarget.parentElement.querySelector("span[data-fallback]");
+                      if (fallback) fallback.style.display = "inline-block";
+                    }}
+                  />
+                  <span data-fallback style={{ display: "none", width: 18, height: 18, borderRadius: 999, border: "2px solid #111" }} />
                   <span>{it.label}</span>
                   {isFav && (
                     <span
@@ -164,7 +146,54 @@ export default function MainHub() {
                       {favCount}
                     </span>
                   )}
+                </>
+              );
+              return isFav ? (
+                <button
+                  key={it.to}
+                  onClick={() => setFilter("favorites")}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "10px 10px",
+                    marginBottom: 6,
+                    borderRadius: 10,
+                    border: isActive ? "1px solid rgba(66,133,244,.18)" : "1px solid #eee",
+                    background: isActive ? "rgba(66,133,244,.08)" : "#fff",
+                    fontWeight: 700,
+                    color: "#111",
+                    cursor: "pointer",
+                    outline: "none",
+                  }}
+                  onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(66,133,244,.35)")}
+                  onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
+                  aria-pressed={isActive}
+                >
+                  {inner}
                 </button>
+              ) : (
+                <NavLink
+                  key={it.to}
+                  to={it.to}
+                  style={({ isActive }) => ({
+                    textDecoration: "none",
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "10px 10px",
+                    marginBottom: 6,
+                    borderRadius: 10,
+                    border: isActive ? "1px solid rgba(66,133,244,.18)" : "1px solid #eee",
+                    background: isActive ? "rgba(66,133,244,.08)" : "#fff",
+                    color: "#111",
+                    fontWeight: 500,
+                  })}
+                >
+                  {inner}
+                </NavLink>
               );
             })}
           </nav>
@@ -437,7 +466,7 @@ function FolderTile({ name, projects, hue, favorite, onFav, onAdd, onEdit }) {
       >
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: "#ffffff", fontWeight: 800, fontSize: 18, letterSpacing: 0.2, textShadow: "0 2px 10px rgba(0,0,0,.35)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
-        <div style={{ color: "rgba(255,255,255,.95)", fontSize: 13, marginTop: 2, textShadow: "0 2px 8px rgba(0,0,0,.35)" }}>{projects} {projects === 1 ? "project" : "projects"}</div>
+          <div style={{ color: "rgba(255,255,255,.95)", fontSize: 13, marginTop: 2, textShadow: "0 2px 8px rgba(0,0,0,.35)" }}>{projects} {projects === 1 ? "project" : "projects"}</div>
         </div>
         <img src="/pencil.png" alt="" aria-hidden style={{ width: 18, height: 18, opacity: 0.95, filter: "drop-shadow(0 1px 4px rgba(0,0,0,.3))" }} />
       </div>
@@ -482,6 +511,7 @@ function RecentCard({ id, title, text, onRemove }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
   const btnRef = useRef(null);
+  const [hover, setHover] = useState(false);
 
   useEffect(() => {
     function onDocClick(e) {
@@ -495,35 +525,21 @@ function RecentCard({ id, title, text, onRemove }) {
 
   return (
     <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       style={{
         height: 150,
         borderRadius: 16,
         background: "#fff",
         border: "1px solid #eee",
-        boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
-        padding: 16,
+        boxShadow: hover ? "0 12px 28px rgba(0,0,0,0.16)" : "0 8px 24px rgba(0,0,0,0.10)",
         position: "relative",
         overflow: "hidden",
+        transition: "box-shadow 160ms, transform 160ms",
+        transform: hover ? "translateY(-2px)" : "none",
       }}
     >
-      <img
-        src="/recentlyviewed.svg"
-        alt=""
-        aria-hidden="true"
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.95, pointerEvents: "none" }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          inset: "0 0 0 0",
-          background: "linear-gradient(180deg, rgba(255,255,255,.92) 0%, rgba(255,255,255,.70) 28%, rgba(255,255,255,.35) 60%, rgba(255,255,255,0) 100%)",
-          pointerEvents: "none",
-        }}
-      />
-      <div style={{ position: "relative", zIndex: 1, color: "#0f172a" }}>
-        <div style={{ fontSize: 16, fontWeight: 800 }}>{title}</div>
-        <div style={{ fontSize: 12, color: "#64748b", marginTop: 8, maxWidth: 280 }}>{text}</div>
-      </div>
+      <img src="/recentlyviewed.svg" alt="" aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
       <button
         ref={btnRef}
         aria-label={`More options for ${title}`}
@@ -541,6 +557,7 @@ function RecentCard({ id, title, text, onRemove }) {
           cursor: "pointer",
           outline: "none",
           zIndex: 2,
+          opacity: hover ? 1 : 0.9,
         }}
         onClick={() => setOpen((v) => !v)}
         onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(66,133,244,.35)")}
@@ -599,7 +616,20 @@ function RecentCard({ id, title, text, onRemove }) {
 function Modal({ children, onClose }) {
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.28)", display: "grid", placeItems: "center", zIndex: 50, backdropFilter: "blur(2px)" }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: 560, background: "#fff", borderRadius: 20, border: "1px solid #eef2f7", boxShadow: "0 24px 72px rgba(0,0,0,0.22)", padding: 22 }}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "min(560px, 96vw)",
+          maxWidth: "96vw",
+          maxHeight: "90vh",
+          background: "#fff",
+          borderRadius: 20,
+          border: "1px solid #eef2f7",
+          boxShadow: "0 24px 72px rgba(0,0,0,0.22)",
+          padding: 22,
+          boxSizing: "border-box",
+        }}
+      >
         {children}
       </div>
     </div>
@@ -625,7 +655,18 @@ function CreateEditDialog({ mode, draftName, setDraftName, draftHue, setDraftHue
         onChange={(e) => setDraftName(e.target.value)}
         placeholder="name your folder"
         autoFocus
-        style={{ width: "100%", padding: "12px 14px", borderRadius: 12, border: "1px solid #e5e7eb", fontSize: 14, outline: "none", transition: "box-shadow 120ms, border 120ms", boxShadow: "0 0 0 0 rgba(66,133,244,0)" }}
+        style={{
+          width: "100%",
+          maxWidth: "100%",
+          boxSizing: "border-box",
+          padding: "12px 14px",
+          borderRadius: 12,
+          border: "1px solid #e5e7eb",
+          fontSize: 14,
+          outline: "none",
+          transition: "box-shadow 120ms, border 120ms",
+          boxShadow: "0 0 0 0 rgba(66,133,244,0)",
+        }}
         onFocus={(e) => (e.target.style.boxShadow = "0 0 0 4px rgba(66,133,244,0.20)")}
         onBlur={(e) => (e.target.style.boxShadow = "0 0 0 0 rgba(66,133,244,0)")}
       />
@@ -636,7 +677,18 @@ function CreateEditDialog({ mode, draftName, setDraftName, draftHue, setDraftHue
             key={o.label}
             onClick={() => setDraftHue(o.deg)}
             aria-label={o.label}
-            style={{ width: 52, height: 52, borderRadius: 14, border: draftHue === o.deg ? "3px solid #111" : "2px solid #e5e7eb", background: "#fff", cursor: "pointer", display: "grid", placeItems: "center", transition: "transform 120ms", outline: "none" }}
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: 14,
+              border: draftHue === o.deg ? "3px solid #111" : "2px solid #e5e7eb",
+              background: "#fff",
+              cursor: "pointer",
+              display: "grid",
+              placeItems: "center",
+              transition: "transform 120ms",
+              outline: "none",
+            }}
             onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(66,133,244,.35)")}
             onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
           >
